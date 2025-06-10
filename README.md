@@ -1,4 +1,4 @@
-**End-to-End Lead Scoring ML Pipeline & API**
+# **End-to-End Lead Scoring ML Pipeline & API**
 
 This project demonstrates a complete, production-ready machine learning pipeline for a lead scoring model. The primary goal is to predict the probability of a lead converting into a customer, allowing a sales team to prioritize their efforts effectively.
 
@@ -60,9 +60,10 @@ DB_NAME=<your_database_name>
 
 3. Launch the Application Locally:  
 From the root directory, run the following command to build and start the API service, the database, and all other components:  
+```
 docker-compose up --build -d
-
-The API will be running and available at http://localhost:<your-port>. *(Check your docker-compose.yml for the port you mapped for the app service).*
+```
+The API will be running and available at `http://localhost:<your-port>`. *(Check your docker-compose.yml for the port you mapped for the app service).*
 
 ## **💡 How to Use the API**
 
@@ -84,11 +85,12 @@ curl -X POST http://leadscore-demo.ezrahernowo.com/predict
 ```
 
 **Expected Response:**
-
+```json
 {  
   "lead_score": 85.3,  
   "prediction": "Will Convert"  
 }
+```
 
 ## **🔮 Future Work & Deployment Roadmap**
 
