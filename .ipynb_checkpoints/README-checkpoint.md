@@ -1,80 +1,103 @@
-# **End-to-End Lead Scoring ML Pipeline**
+**End-to-End Lead Scoring ML Pipeline & API**
 
-This project demonstrates a complete machine learning pipeline for a lead scoring model. The goal is to predict the probability of a lead converting into a customer, allowing a sales team to prioritize their efforts on the most promising leads. The entire environment is containerized using Docker for easy setup and reproducibility.
+This project demonstrates a complete, production-ready machine learning pipeline for a lead scoring model. The primary goal is to predict the probability of a lead converting into a customer, allowing a sales team to prioritize their efforts effectively.
+
+The entire environment is containerized using Docker, and the final model is deployed as a REST API for real-time predictions.
 
 ## **🚀 Key Features**
 
-* **Data Ingestion:** Loads lead data from a PostgreSQL database.  
-* **End-to-End Pipeline:** Covers all stages from data cleaning and EDA to feature engineering and modeling.  
-* **Predictive Model:** Utilizes a Logistic Regression model to calculate a lead conversion score.  
-* **High Performance:** Achieves **\~94% accuracy** and an **AUC score of \~0.98** on the test set.  
-* **Reproducibility:** Fully containerized with Docker and Docker Compose for a one-command setup.  
-* **Secure Configuration:** Uses environment variables for managing sensitive credentials, ready for public repositories.
+* **Real-Time API:** Deployed with Flask and Gunicorn for live, on-demand lead scoring.  
+* **End-to-End Pipeline:** Covers all stages from data cleaning and EDA to feature engineering and deployment.  
+* **High Performance:** The underlying Logistic Regression model achieves **~94% accuracy** and an **AUC score of ~0.98**.  
+* **Reproducibility:** Fully containerized with Docker and Docker Compose for a one-command setup of the entire application stack.  
+* **Secure Configuration:** Uses environment variables for managing sensitive database credentials.  
+* **Clean Architecture:** The project is organized into distinct app, models, and notebooks directories for clarity and maintainability.
 
 ## **🛠️ Tech Stack**
 
-* **Backend & Data:** PostgreSQL, Docker  
-* **ML & Data Science:** Python, Pandas, Scikit-learn, Jupyter Lab  
-* **Orchestration:** Docker Compose  
-* **Environment Management:** python-dotenv
+* **API & Backend:** Python, Flask, Gunicorn, PostgreSQL  
+* **ML & Data Science:** Pandas, Scikit-learn, Jupyter Lab  
+* **Orchestration & Deployment:** Docker, Docker Compose
 
-## **📊 Pipeline Overview**
+## **📂 Project Structure**
+```
+lead-scoring-pipeline/  
+├── app/                      # Contains the Flask API source code and Docker files
+│   ├── app.py  
+│   ├── docker-compose.yml    # Orchestrates all services  
+│   ├── Dockerfile            # Defines the API service container  
+│   ├── requirements.txt      # Python dependencies
+│   └── gunicorn_config.py  
+├── models/                   # Stores trained model artifacts  
+│   ├── log_reg_model.joblib  
+│   └── preprocessor.joblib  
+├── notebooks/                # Holds the development notebook for experimentation  
+│   ├── jupyter_db_connection_tes.py
+│   └── lead_scoring_model_pipeline.ipynb  
+├── .gitignore  
+└── README.md  
+```
 
-1. **Database Setup:** A PostgreSQL database is orchestrated via Docker Compose to store the raw lead data.  
-2. **Data Ingestion:** A Python script connects to the database to fetch the data into a Pandas DataFrame.  
-3. **Data Cleaning & EDA:** Missing values are handled with a combination of dropping low-utility columns and strategic imputation (e.g., mode, median, 'Not Specified' category).  
-4. **Feature Engineering:** Categorical features are one-hot encoded and numerical features are scaled. Low-variance features are automatically removed.  
-5. **Model Training:** A Logistic Regression model is trained on the processed data.  
-6. **Model Evaluation:** The model's performance is evaluated using accuracy, precision, recall, F1-score, and ROC AUC.  
-7. **Lead Scoring:** The trained model is used to generate a conversion probability score (from 0 to 100\) for each lead.
-
-## **⚙️ Setup and Installation**
+## **⚙️ Local Setup and Usage**
 
 **Prerequisites:** Docker and Docker Compose must be installed on your system.
 
-**1\. Clone the Repository:**
+**1. Clone the Repository:**
+```
+git clone https://github.com/1bytess/lead-scoring-pipeline.git  
+cd lead-scoring-pipeline
+```
 
-git clone \<your-repository-url\>  
-cd \<your-repository-name\>
+2. Create the Environment File:  
+The database service requires an .env file for credentials. Create a file named .env in the root directory and add the following:  
+```
+DB_USER=<user>
+DB_PASSWORD=<your_database_password>
+DB_HOST=<your_database_host> 
+DB_PORT=5432  
+DB_NAME=<your_database_name>
+```
 
-2\. Create the Environment File:  
-This project uses an .env file to manage credentials securely. Create a file named .env in the root directory and add the following, using the same credentials as your docker-compose.yml:  
-DB\_USER=ml\_user  
-DB\_PASSWORD=AfVGVnMir0ur5Rt  
-DB\_HOST=ml\_postgres  
-DB\_PORT=5432  
-DB\_NAME=ml\_pipeline
+3. Launch the Application Locally:  
+From the root directory, run the following command to build and start the API service, the database, and all other components:  
+docker-compose up --build -d
 
-*(Note: A .gitignore file is included to prevent this file from being uploaded to GitHub.)*
+The API will be running and available at http://localhost:<your-port>. *(Check your docker-compose.yml for the port you mapped for the app service).*
 
-3\. Launch the Services:  
-From the root directory, run the following command to build and start all the services (PostgreSQL, pgAdmin, Jupyter Lab):  
-docker-compose up \--build \-d
+## **💡 How to Use the API**
 
-**4\. Run the Pipeline:**
+You can send a POST request with lead data to the /predict endpoint to get a real-time conversion score.
 
-* Access Jupyter Lab by navigating to http://localhost:8888 in your browser.  
-* Open the .ipynb notebook file.  
-* Run the cells from top to bottom to execute the entire data pipeline and model training process.
+Here is an example using curl with the live demo URL:
+```
+curl -X POST http://leadscore-demo.ezrahernowo.com/predict   
+-H "Content-Type: application/json"   
+-d '{  
+      "TotalVisits": 10,  
+      "Total Time Spent on Website": 600,  
+      "Page Views Per Visit": 5,  
+      "Lead Source": "Google",  
+      "Last Activity": "Email Opened",  
+      "Specialization": "Business Administration",  
+      "What is your current occupation": "Working Professional"  
+    }'
+```
 
-## **📈 Results**
+**Expected Response:**
 
-The final Logistic Regression model demonstrated excellent performance on the held-out test data:
-
-* **Accuracy:** 94.15%  
-* **ROC AUC Score:** 0.9813  
-* **Precision (Converted):** 0.95  
-* **Recall (Converted):** 0.89
-
-These results indicate a highly reliable model that can effectively distinguish between converting and non-converting leads.
+{  
+  "lead_score": 85.3,  
+  "prediction": "Will Convert"  
+}
 
 ## **🔮 Future Work & Deployment Roadmap**
 
 * **Advanced Feature Engineering:**  
-  * \[ \] Implement advanced feature selection techniques like **Recursive Feature Elimination (RFE)** to identify the most impactful features and potentially simplify the model.  
+  * [ ] Implement advanced feature selection techniques like **Recursive Feature Elimination (RFE)** to identify the most impactful features and potentially simplify the model.  
 * **Model Optimization:**  
-  * \[ \] Perform **hyperparameter tuning** using GridSearchCV or RandomizedSearchCV to further optimize model performance.  
-  * \[ \] Experiment with more complex models like **Random Forest** or **Gradient Boosting (XGBoost)** to compare results.  
-* **Deployment:**  
-  * \[ \] **Real-time Scoring API:** Package the trained model and preprocessing pipeline into a REST API using **Flask** or **FastAPI**. This would allow other applications to get lead scores on-demand.  
-  * \[ \] **Interactive Dashboard:** Develop a dashboard using **Streamlit** or **Dash** to visualize lead scores, explore model predictions, and monitor performance in a user-friendly interface.
+  * [ ] Perform **hyperparameter tuning** using GridSearchCV or RandomizedSearchCV to further optimize model performance.  
+  * [ ] Experiment with more complex models like **Random Forest** or **Gradient Boosting (XGBoost)** to compare results.  
+* **Interactive Dashboard:**  
+  * [ ] Develop a dashboard using **Streamlit** or **Dash** that consumes the API, allowing users to input lead data via a web form and see the results visually.  
+* **CI/CD Pipeline:**  
+  * [ ] Implement a CI/CD pipeline using **GitHub Actions** to automatically test and deploy changes to the application.
