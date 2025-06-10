@@ -34,23 +34,28 @@ This project demonstrates a complete machine learning pipeline for a lead scorin
 
 **1\. Clone the Repository:**
 
-git clone \<your-repository-url\>  
-cd \<your-repository-name\>
+```bash
+git clone https://github.com/1bytess/lead-scoring-pipeline.git
+cd lead-scoring-pipeline
+```
 
 2\. Create the Environment File:  
 This project uses an .env file to manage credentials securely. Create a file named .env in the root directory and add the following, using the same credentials as your docker-compose.yml:  
-DB\_USER=ml\_user  
-DB\_PASSWORD=AfVGVnMir0ur5Rt  
-DB\_HOST=ml\_postgres  
-DB\_PORT=5432  
-DB\_NAME=ml\_pipeline
+```
+DB_USER=your_db_user  
+DB_PASSWORD=your_db_password
+DB_HOST=your_db_host  
+DB_PORT=5432  
+DB_NAME=your_db_name
+```
 
 *(Note: A .gitignore file is included to prevent this file from being uploaded to GitHub.)*
 
 3\. Launch the Services:  
 From the root directory, run the following command to build and start all the services (PostgreSQL, pgAdmin, Jupyter Lab):  
-docker-compose up \--build \-d
-
+```
+docker-compose up --build -d
+```
 **4\. Run the Pipeline:**
 
 * Access Jupyter Lab by navigating to http://localhost:8888 in your browser.  
