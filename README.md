@@ -83,7 +83,10 @@ curl -X POST http://leadscore-demo.ezrahernowo.com/predict \
       "What is your current occupation": "Unemployed"  
     }'
 ```
-
+or
+```
+curl -X POST https://leadscore-demo.ezrahernowo.com/predict -H "Content-Type: application/json" -d '{"TotalVisits": 4, "Total Time Spent on Website": 1850, "Page Views Per Visit": 4, "Lead Origin": "API", "Lead Source": "Google", "Last Activity": "SMS Sent", "What is your current occupation": "Unemployed"}'
+```
 **Expected Response:**
 ```json
 {
