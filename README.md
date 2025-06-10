@@ -72,15 +72,15 @@ You can send a POST request with lead data to the /predict endpoint to get a rea
 Here is an example using curl with the live demo URL:
 ```
 curl -X POST http://leadscore-demo.ezrahernowo.com/predict \   
--H "Content-Type: application/json" \ 
+-H "Content-Type: application/json" \
 -d '{  
-      "TotalVisits": 10,  
-      "Total Time Spent on Website": 600,  
-      "Page Views Per Visit": 5,  
+      "TotalVisits": 4,  
+      "Total Time Spent on Website": 1850,  
+      "Page Views Per Visit": 4,
+      "Lead Origin": "API"  
       "Lead Source": "Google",  
-      "Last Activity": "Email Opened",  
-      "Specialization": "Business Administration",  
-      "What is your current occupation": "Working Professional"  
+      "Last Activity": "SMS Sent",  
+      "What is your current occupation": "Unemployed"  
     }'
 ```
 
