@@ -86,11 +86,17 @@ curl -X POST http://leadscore-demo.ezrahernowo.com/predict \
 
 **Expected Response:**
 ```json
-{  
-  "lead_score": 85.3,  
-  "prediction": "Will Convert"  
+{
+  "lable": "Will Conver",
+  "lead_score": 88.89,  
+  "prediction": 1
 }
 ```
+
+## **✨ Try the Live Dashboard App**
+To see the project in action, visit the live web application:
+
+[https://leadscore-demo.ezrahernowo.com](https://leadscore-demo.ezrahernowo.com)
 
 ## **🔮 Future Work & Deployment Roadmap**
 
