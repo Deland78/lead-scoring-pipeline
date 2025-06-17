@@ -22,12 +22,20 @@ The entire environment is containerized using Docker, and the final model is dep
 ## **📂 Project Structure**
 ```
 lead-scoring-pipeline/  
-├── app/                      # Contains the Flask API source code and Docker files
+├── app-lead-scoring/                      # Contains the Flask Web APP
 │   ├── app.py  
-│   ├── docker-compose.yml    # Orchestrates all services  
-│   ├── Dockerfile            # Defines the API service container  
-│   ├── requirements.txt      # Python dependencies
+│   ├── docker-compose.yml 
+│   ├── Dockerfile         
+│   ├── requirements.txt    
 │   └── gunicorn_config.py  
+├── api-lead-scoring/                      # Contains the FAST API
+│   ├── models/
+│   ├── .dockerignore
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── main.py     
+│   ├── README.md 
+│   └──requirements.txt    
 ├── models/                   # Stores trained model artifacts  
 │   ├── log_reg_model.joblib  
 │   └── preprocessor.joblib  
@@ -42,13 +50,13 @@ lead-scoring-pipeline/
 
 **Prerequisites:** Docker and Docker Compose must be installed on your system.
 
-**1. Clone the Repository:**
+1. **Clone the Repository:**
 ```
 git clone https://github.com/1bytess/lead-scoring-pipeline.git  
 cd lead-scoring-pipeline
 ```
 
-2. Create the Environment File:  
+2. **Create the Environment File:**  
 The database service requires an .env file for credentials. Create a file named .env in the root directory and add the following:  
 ```
 DB_USER=<user>
@@ -57,13 +65,24 @@ DB_HOST=<your_database_host>
 DB_PORT=5432  
 DB_NAME=<your_database_name>
 ```
+3. **Launch the app:**
 
-3. Launch the Application Locally:  
-From the root directory, run the following command to build and start the API service, the database, and all other components:  
-```
-docker-compose up --build -d
-```
-The API will be running and available at `http://localhost:<your-port>`. *(Check your docker-compose.yml for the port you mapped for the app service).*
+- **Launch the UI APP Locally:**  
+  From the root directory, run the following command to build and start the API service, the database, and all other components:  
+  ```
+  cd api-lead-scoring
+  python3 app.py
+  ```
+  The API will be running and available at `http://localhost:5000`. *(Check your docker-compose.yml for the port you mapped for the app service).*
+
+- **Launch the API on Docker:**  
+  From the root directory, run the following command to build and start the API service, the database, and all other components:  
+  ```
+  cd api-lead-scoring
+  docker-compose build --no-cache
+  docker-compose up -d
+  ```
+  The API will be running and available at `http://<you-server-ip>:3001/v2`. *(Check your docker-compose.yml for the port you mapped for the app service).*
 
 ## **💡 How to Use the API**
 
@@ -71,7 +90,7 @@ You can send a POST request with lead data to the /predict endpoint to get a rea
 
 Here is an example using curl with the live demo URL:
 ```
-curl -X POST http://leadscore-demo.ezrahernowo.com/predict \   
+curl -X POST http://api.ezrahernowo.com/v2/predict \   
 -H "Content-Type: application/json" \
 -d '{  
       "TotalVisits": 4,  
@@ -85,7 +104,7 @@ curl -X POST http://leadscore-demo.ezrahernowo.com/predict \
 ```
 or
 ```
-curl -X POST https://leadscore-demo.ezrahernowo.com/predict -H "Content-Type: application/json" -d '{"TotalVisits": 4, "Total Time Spent on Website": 1850, "Page Views Per Visit": 4, "Lead Origin": "API", "Lead Source": "Google", "Last Activity": "SMS Sent", "What is your current occupation": "Unemployed"}'
+curl -X POST https://api.ezrahernowo.com/v2/predict -H "Content-Type: application/json" -d '{"TotalVisits": 4, "Total Time Spent on Website": 1850, "Page Views Per Visit": 4, "Lead Origin": "API", "Lead Source": "Google", "Last Activity": "SMS Sent", "What is your current occupation": "Unemployed"}'
 ```
 **Expected Response:**
 ```json
@@ -99,7 +118,7 @@ curl -X POST https://leadscore-demo.ezrahernowo.com/predict -H "Content-Type: ap
 ## **✨ Try the Live Dashboard App**
 To see the project in action, visit the live web application:
 
-[https://leadscore-demo.ezrahernowo.com](https://leadscore-demo.ezrahernowo.com)
+[https://demo.ezrahernowo.com/lead-scoring](https://demo.ezrahernowo.com/lead-scoring)
 
 ## **🔮 Future Work & Deployment Roadmap**
 
