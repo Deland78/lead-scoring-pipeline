@@ -151,6 +151,7 @@ HTML_TEMPLATE = """
                                 <option {% if form_data.get('What is your current occupation') == 'Student' %}selected{% endif %}>Student</option>
                                 <option {% if form_data.get('What is your current occupation') == 'Housewife' %}selected{% endif %}>Housewife</option>
                                 <option {% if form_data.get('What is your current occupation') == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
                         </div>
 
                         <!-- Hidden inputs -->
