@@ -131,6 +131,7 @@ HTML_TEMPLATE = """
                                 <option {% if form_data.get('Lead Source') == 'Olark Chat' %}selected{% endif %}>Olark Chat</option>
                                 <option {% if form_data.get('Lead Source') == 'Organic Search' %}selected{% endif %}>Organic Search</option>
                                 <option {% if form_data.get('Lead Source') == 'Reference' %}selected{% endif %}>Reference</option>
+                            </select>
                         </div>
                          <div class="md:col-span-2">
                             <label for="Last Activity" class="block text-sm font-medium text-gray-700">Last Activity</label>
