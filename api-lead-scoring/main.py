@@ -4,9 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 import joblib
 import pandas as pd
-import numpy as np
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import uvicorn
 from datetime import datetime
 import os
@@ -14,6 +13,20 @@ import os
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Env-driven config
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+]
+
+def get_allowed_origins() -> List[str]:
+    raw = os.environ.get("ALLOWED_ORIGINS", ",".join(DEFAULT_ALLOWED_ORIGINS))
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+API_PORT = int(os.environ.get("PORT", os.environ.get("API_PORT", "5001")))
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -24,12 +37,12 @@ app = FastAPI(
     redoc_url="/v2/redoc"
 )
 
-# Add CORS middleware
+# Add CORS middleware with restricted origins via env
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your domain
+    allow_origins=get_allowed_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -48,6 +61,10 @@ EXPECTED_COLUMNS = [
     'Newspaper Article', 'X Education Forums', 'Newspaper', 'Digital Advertisement',
     'Through Recommendations', 'Tags', 'Lead Quality', 'City',
     'A free copy of Mastering The Interview', 'Last Notable Activity'
+]
+
+NUMERIC_COLUMNS = [
+    'TotalVisits', 'Total Time Spent on Website', 'Page Views Per Visit'
 ]
 
 # Pydantic models for request/response
@@ -75,7 +92,7 @@ class LeadScoringRequest(BaseModel):
     Last_Activity: str = Field(..., alias="Last Activity", description="Last recorded activity")
     What_is_your_current_occupation: str = Field(..., alias="What is your current occupation", description="Current occupation")
 
-    # Optional fields with defaults
+    # Optional fields with defaults (categorical only)
     Do_Not_Email: str = Field("No", alias="Do Not Email")
     Do_Not_Call: str = Field("No", alias="Do Not Call")
     Country: str = Field("India", alias="Country")
@@ -143,7 +160,7 @@ async def load_models():
             model_loaded = True
             logger.info("✅ Model loaded successfully")
         else:
-            logger.error(f"❌ Model file not found at {model_path}")
+            logger.warning(f"Model file not found at {model_path}")
 
         # Load preprocessor
         preprocessor_path = "models/preprocessor.joblib"
@@ -152,23 +169,24 @@ async def load_models():
             preprocessor_loaded = True
             logger.info("✅ Preprocessor loaded successfully")
         else:
-            logger.error(f"❌ Preprocessor file not found at {preprocessor_path}")
+            logger.warning(f"Preprocessor file not found at {preprocessor_path}")
 
         if model_loaded and preprocessor_loaded:
             logger.info("🚀 Lead Scoring API is ready!")
         else:
-            logger.warning("⚠️  API started but models not fully loaded")
+            logger.warning("API started but models not fully loaded (health will be degraded)")
 
     except Exception as e:
-        logger.error(f"❌ Error loading models: {str(e)}")
+        logger.error(f"Error loading models: {str(e)}")
+
 
 def increment_predictions_count():
-    """Background task to increment predictions counter"""
     global predictions_count
     predictions_count += 1
 
+
 def prepare_features(request_data: LeadScoringRequest) -> pd.DataFrame:
-    """Convert request data to DataFrame with all expected columns"""
+    """Convert request data to DataFrame with all expected columns, keeping numeric types correct."""
     data_dict: Dict[str, Any] = {}
 
     # Map the request fields to the expected column names
@@ -197,10 +215,8 @@ def prepare_features(request_data: LeadScoringRequest) -> pd.DataFrame:
         'Last_Notable_Activity': 'Last Notable Activity'
     }
 
-    # Get all field values (pydantic v2)
     request_dict = request_data.model_dump(by_alias=False)
 
-    # Create the data dictionary with proper column names
     for field_name, column_name in field_mapping.items():
         if field_name in request_dict:
             data_dict[column_name] = request_dict[field_name]
@@ -208,19 +224,24 @@ def prepare_features(request_data: LeadScoringRequest) -> pd.DataFrame:
     # Ensure all expected columns are present
     for col in EXPECTED_COLUMNS:
         if col not in data_dict:
-            data_dict[col] = 'Not Specified'
+            # For numeric columns use 0; for categorical use "Not Specified"
+            if col in NUMERIC_COLUMNS:
+                data_dict[col] = 0
+            else:
+                data_dict[col] = 'Not Specified'
 
-    # Create DataFrame
     df = pd.DataFrame([data_dict])
 
-    # Reorder columns to match expected order
-    df = df[EXPECTED_COLUMNS]
+    # Cast numeric
+    for col in NUMERIC_COLUMNS:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
+    # Reorder columns
+    df = df[EXPECTED_COLUMNS]
     return df
 
 @app.get("/", summary="Root endpoint")
 async def root():
-    """Root endpoint with basic API information"""
     return {
         "message": "Lead Scoring API",
         "version": "2.0.0",
@@ -234,11 +255,7 @@ async def root():
 
 @app.get("/v2/health", response_model=HealthResponse, summary="Health check endpoint")
 async def health_check():
-    """Check API health and model status"""
-    global model_loaded, preprocessor_loaded, predictions_count
-
     status = "healthy" if (model_loaded and preprocessor_loaded) else "degraded"
-
     return HealthResponse(
         status=status,
         model_loaded=model_loaded,
@@ -253,47 +270,17 @@ async def predict_lead_conversion(
     request: LeadScoringRequest,
     background_tasks: BackgroundTasks
 ):
-    """
-    Predict whether a lead will convert based on their attributes.
-
-    Returns:
-    - prediction: 0 (will not convert) or 1 (will convert)
-    - lead_score: Confidence score as percentage
-    - label: Human readable prediction
-    """
-    global model, preprocessor, model_loaded, preprocessor_loaded
-
-    # Check if models are loaded
     if not model_loaded or not preprocessor_loaded:
-        raise HTTPException(
-            status_code=503,
-            detail="Models not loaded. Please check server logs."
-        )
+        raise HTTPException(status_code=503, detail="Models not loaded. Please check server logs.")
 
     try:
-        # Prepare features
         features_df = prepare_features(request)
-        logger.info(f"Features prepared: {features_df.shape}")
-
-        # Preprocess features
         features_processed = preprocessor.transform(features_df)
-        logger.info(f"Features preprocessed: {features_processed.shape}")
-
-        # Make prediction
         prediction = model.predict(features_processed)[0]
         prediction_proba = model.predict_proba(features_processed)[0]
-
-        # Calculate lead score (probability of conversion * 100)
         lead_score = float(prediction_proba[1] * 100)
-
-        # Create label
         label = "Will Convert" if prediction == 1 else "Will Not Convert"
-
-        # Increment predictions count in background
         background_tasks.add_task(increment_predictions_count)
-
-        logger.info(f"Prediction made: {prediction}, Score: {lead_score:.2f}%")
-
         return LeadScoringResponse(
             prediction=int(prediction),
             lead_score=round(lead_score, 2),
@@ -301,36 +288,27 @@ async def predict_lead_conversion(
             timestamp=datetime.now().isoformat(),
             model_version="2.0.0"
         )
-
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 @app.get("/v2/models/info", summary="Model information")
 async def get_model_info():
-    """Get information about loaded models"""
-    global model, preprocessor, model_loaded, preprocessor_loaded
-
     info = {
         "model_loaded": model_loaded,
         "preprocessor_loaded": preprocessor_loaded,
         "expected_features": EXPECTED_COLUMNS,
         "feature_count": len(EXPECTED_COLUMNS)
     }
-
     if model_loaded and hasattr(model, 'classes_'):
         info["model_classes"] = model.classes_.tolist()
-
     return info
 
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=5000,
-        reload=False,  # Set to True for development
+        port=API_PORT,
+        reload=False,
         log_level="info"
     )

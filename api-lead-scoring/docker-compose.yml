@@ -2,15 +2,17 @@ version: '3.8'
 
 services:
   api-lead-scoring:
-    container_name: api-leads-scoring
+    container_name: api-lead-scoring
     build: .
-    ports:
-      - "5000:5000"
     environment:
       - PYTHONPATH=/app
+      - PORT=${API_PORT:-5001}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:5000,http://127.0.0.1:5000}
+    ports:
+      - "${API_PORT:-5001}:${API_PORT:-5001}"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/v2/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${API_PORT:-5001}/v2/health"]
       interval: 30s
       timeout: 10s
       retries: 3

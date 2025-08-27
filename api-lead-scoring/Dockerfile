@@ -1,13 +1,12 @@
 # Use Python 3.11 slim image for smaller size
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PORT=5001
 
 # Install system dependencies (including curl for healthcheck)
 RUN apt-get update && apt-get install -y \
@@ -16,34 +15,21 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better Docker layer caching
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Create models directory
+# Create models directory (artifacts should be volume-mounted in prod)
 RUN mkdir -p models
 
-# Copy application code
 COPY main.py .
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
 
-# Copy model files (must exist in build context)
-COPY models/model.joblib models/
-COPY models/preprocessor.joblib models/
-
-# Create non-root user for security
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
-USER appuser
-
-# Expose port
-EXPOSE 5000
-
-# Health check
+# Do NOT copy model artifacts at build time; mount at runtime
+# EXPOSE port and set healthcheck
+EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/v2/health || exit 1
+  CMD curl -f http://localhost:${PORT}/v2/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "1"]
+CMD ["/app/start.sh"]
