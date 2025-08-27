@@ -71,18 +71,17 @@ DB_NAME=<your_database_name>
   From the root directory, run the following command to build and start the API service, the database, and all other components:  
   ```
   cd api-lead-scoring
-  python3 app.py
+  python3 main.py
   ```
   The API will be running and available at `http://localhost:5000`. *(Check your docker-compose.yml for the port you mapped for the app service).*
 
 - **Launch the API on Docker:**  
   From the root directory, run the following command to build and start the API service, the database, and all other components:  
   ```
-  cd api-lead-scoring
-  docker-compose build --no-cache
-  docker-compose up -d
+  docker compose build --no-cache
+  docker compose up -d
   ```
-  The API will be running and available at `http://<you-server-ip>:3001/v2`. *(Check your docker-compose.yml for the port you mapped for the app service).*
+  The API will be running and available at `http://<your-server-ip>:5000/v2`.
 
 ## **💡 How to Use the API**
 
@@ -90,13 +89,13 @@ You can send a POST request with lead data to the /predict endpoint to get a rea
 
 Here is an example using curl with the live demo URL:
 ```
-curl -X POST http://api.ezrahernowo.com/v2/predict \   
+curl -X POST http://api.ezrahernowo.com/v2/predict \
 -H "Content-Type: application/json" \
 -d '{  
       "TotalVisits": 4,  
       "Total Time Spent on Website": 1850,  
       "Page Views Per Visit": 4,
-      "Lead Origin": "API"  
+      "Lead Origin": "API",  
       "Lead Source": "Google",  
       "Last Activity": "SMS Sent",  
       "What is your current occupation": "Unemployed"  
@@ -109,8 +108,8 @@ curl -X POST https://api.ezrahernowo.com/v2/predict -H "Content-Type: applicatio
 **Expected Response:**
 ```json
 {
-  "lable": "Will Conver",
-  "lead_score": 88.89,  
+  "label": "Will Convert",
+  "lead_score": 88.89,
   "prediction": 1
 }
 ```

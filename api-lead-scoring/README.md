@@ -10,7 +10,7 @@ lead-scoring-api/
 ├── requirements.txt        # Python dependencies
 ├── Dockerfile             # Docker container configuration
 ├── docker-compose.yml     # Docker Compose for local development
-├── start.sh              # Production startup script
+├── start.sh              # Production startup script (optional)
 ├── .dockerignore         # Docker ignore file
 ├── models/               # Model files directory
 │   ├── model.joblib      # Trained ML model (you need to add this)
@@ -53,7 +53,7 @@ python main.py
 
 ```bash
 # Build and run with Docker Compose
-docker-compose up --build
+docker compose up --build
 
 # Or build and run manually
 docker build -t lead-scoring-api .
@@ -65,15 +65,8 @@ docker run -p 8000:8000 lead-scoring-api
 #### With Docker (Recommended):
 
 ```bash
-# Build the image
 docker build -t lead-scoring-api .
-
-# Run in production mode
-docker run -d \
-  --name lead-scoring-api \
-  --restart unless-stopped \
-  -p 5000:5000 \
-  lead-scoring-api
+docker run -d --name lead-scoring-api --restart unless-stopped -p 5000:5000 lead-scoring-api
 ```
 
 #### With startup script:

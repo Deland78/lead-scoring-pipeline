@@ -1,7 +1,8 @@
 # main.py
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
+from pydantic import field_validator, ConfigDict
 import joblib
 import pandas as pd
 import numpy as np
@@ -52,6 +53,7 @@ EXPECTED_COLUMNS = [
 
 # Pydantic models for request/response
 class LeadScoringRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     TotalVisits: int = Field(..., ge=0, description="Number of website visits")
     Page_Views_Per_Visit: float = Field(..., ge=0, alias="Page Views Per Visit", description="Average page views per visit")
     Total_Time_Spent_on_Website: int = Field(..., ge=0, alias="Total Time Spent on Website", description="Total time spent on website in seconds")
@@ -77,33 +79,19 @@ class LeadScoringRequest(BaseModel):
     A_free_copy_of_Mastering_The_Interview: str = Field("No", alias="A free copy of Mastering The Interview")
     Last_Notable_Activity: str = Field("Modified", alias="Last Notable Activity")
 
-    class Config:
-        allow_population_by_field_name = True
-        schema_extra = {
-            "example": {
-                "TotalVisits": 5,
-                "Page Views Per Visit": 3.2,
-                "Total Time Spent on Website": 1850,
-                "Lead Origin": "API",
-                "Lead Source": "Google",
-                "Last Activity": "Email Opened",
-                "What is your current occupation": "Working Professional"
-            }
-        }
-
-    @validator('TotalVisits')
+    @field_validator('TotalVisits')
     def validate_total_visits(cls, v):
         if v < 0:
             raise ValueError('Total visits must be non-negative')
         return v
 
-    @validator('Page_Views_Per_Visit')
+    @field_validator('Page_Views_Per_Visit')
     def validate_page_views(cls, v):
         if v < 0:
             raise ValueError('Page views per visit must be non-negative')
         return v
 
-    @validator('Total_Time_Spent_on_Website')
+    @field_validator('Total_Time_Spent_on_Website')
     def validate_time_spent(cls, v):
         if v < 0:
             raise ValueError('Total time spent must be non-negative')
