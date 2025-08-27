@@ -9,10 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Install system dependencies
+# Install system dependencies (including curl for healthcheck)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better Docker layer caching
@@ -28,7 +29,7 @@ RUN mkdir -p models
 # Copy application code
 COPY main.py .
 
-# Copy model files (you'll need to add these)
+# Copy model files (must exist in build context)
 COPY models/model.joblib models/
 COPY models/preprocessor.joblib models/
 

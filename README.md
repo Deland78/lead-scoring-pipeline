@@ -1,133 +1,76 @@
-# **End-to-End Lead Scoring ML Pipeline & API**
+# End-to-End Lead Scoring: API (FastAPI) + UI (Flask)
 
-This project demonstrates a complete, production-ready machine learning pipeline for a lead scoring model. The primary goal is to predict the probability of a lead converting into a customer, allowing a sales team to prioritize their efforts effectively.
+This repository contains a complete demo of a lead scoring pipeline with:
+- A production-style API (FastAPI) for real-time predictions
+- A simple web UI (Flask) to submit leads and visualize results
 
-The entire environment is containerized using Docker, and the final model is deployed as a REST API for real-time predictions.
+No database is required for the demo. Both services use pre-trained model artifacts.
 
-## **🚀 Key Features**
+## Components
+- api-lead-scoring (FastAPI)
+  - Endpoints: `/` (info), `/v2/health`, `/v2/predict`, `/v2/models/info`, docs at `/v2/docs`
+  - Port: 5000 (default). In local dev we commonly use 5051 to avoid conflicts.
+  - Models: `api-lead-scoring/models/model.joblib`, `api-lead-scoring/models/preprocessor.joblib`
+- app-lead-scoring (Flask UI)
+  - Routes: `/` (form + dashboard), `/health`
+  - Port: 5000 (default). In App Preview we map to 3000 for convenience.
+  - Models: by default searched in `./`, `../models`, `/app/models` (see MODEL_DIR below)
 
-* **Real-Time API:** Deployed with Flask and Gunicorn for live, on-demand lead scoring.  
-* **End-to-End Pipeline:** Covers all stages from data cleaning and EDA to feature engineering and deployment.  
-* **High Performance:** The underlying Logistic Regression model achieves **~94% accuracy** and an **AUC score of ~0.98**.  
-* **Reproducibility:** Fully containerized with Docker and Docker Compose for a one-command setup of the entire application stack.  
-* **Secure Configuration:** Uses environment variables for managing sensitive database credentials.  
-* **Clean Architecture:** The project is organized into distinct app, models, and notebooks directories for clarity and maintainability.
+## Quick Start (no Docker)
 
-## **🛠️ Tech Stack**
-
-* **API & Backend:** Python, Flask, Gunicorn, PostgreSQL  
-* **ML & Data Science:** Pandas, Scikit-learn, Jupyter Lab  
-* **Orchestration & Deployment:** Docker, Docker Compose
-
-## **📂 Project Structure**
+### Start the API
+```bash
+cd api-lead-scoring
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+# start on a free port (e.g. 5051)
+uvicorn main:app --host 0.0.0.0 --port 5051 &
 ```
-lead-scoring-pipeline/  
-├── app-lead-scoring/                      # Contains the Flask Web APP
-│   ├── app.py  
-│   ├── docker-compose.yml 
-│   ├── Dockerfile         
-│   ├── requirements.txt    
-│   └── gunicorn_config.py  
-├── api-lead-scoring/                      # Contains the FAST API
-│   ├── models/
-│   ├── .dockerignore
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   ├── main.py     
-│   ├── README.md 
-│   └──requirements.txt    
-├── models/                   # Stores trained model artifacts  
-│   ├── log_reg_model.joblib  
-│   └── preprocessor.joblib  
-├── notebooks/                # Holds the development notebook for experimentation  
-│   ├── jupyter_db_connection_tes.py
-│   └── lead_scoring_model_pipeline.ipynb  
-├── .gitignore  
-└── README.md  
+- Health: `curl http://127.0.0.1:5051/v2/health`
+- Predict:
+```bash
+curl -X POST http://127.0.0.1:5051/v2/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "TotalVisits": 5,
+    "Page Views Per Visit": 3.2,
+    "Total Time Spent on Website": 1850,
+    "Lead Origin": "API",
+    "Lead Source": "Google",
+    "Last Activity": "Email Opened",
+    "What is your current occupation": "Working Professional"
+  }'
 ```
 
-## **⚙️ Local Setup and Usage**
-
-**Prerequisites:** Docker and Docker Compose must be installed on your system.
-
-1. **Clone the Repository:**
+### Start the UI (on 3000 for preview)
+```bash
+cd app-lead-scoring
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+# optional: provide MODEL_DIR if artifacts are stored elsewhere
+# export MODEL_DIR=/app/models
+# run UI on 3000
+gunicorn -b 0.0.0.0:3000 app:app &
 ```
-git clone https://github.com/1bytess/lead-scoring-pipeline.git  
-cd lead-scoring-pipeline
-```
+Then open http://127.0.0.1:3000
 
-2. **Create the Environment File:**  
-The database service requires an .env file for credentials. Create a file named .env in the root directory and add the following:  
-```
-DB_USER=<user>
-DB_PASSWORD=<your_database_password>
-DB_HOST=<your_database_host> 
-DB_PORT=5432  
-DB_NAME=<your_database_name>
-```
-3. **Launch the app:**
+## Docker (optional)
 
-- **Launch the UI APP Locally:**  
-  From the root directory, run the following command to build and start the API service, the database, and all other components:  
-  ```
-  cd api-lead-scoring
-  python3 app.py
-  ```
-  The API will be running and available at `http://localhost:5000`. *(Check your docker-compose.yml for the port you mapped for the app service).*
+Docker is not required for local runs here. If you enable Docker, the API includes a working `Dockerfile` and `docker-compose.yml`. One fix applied: the Docker image now installs `curl` for the container `HEALTHCHECK` to work.
 
-- **Launch the API on Docker:**  
-  From the root directory, run the following command to build and start the API service, the database, and all other components:  
-  ```
-  cd api-lead-scoring
-  docker-compose build --no-cache
-  docker-compose up -d
-  ```
-  The API will be running and available at `http://<you-server-ip>:3001/v2`. *(Check your docker-compose.yml for the port you mapped for the app service).*
-
-## **💡 How to Use the API**
-
-You can send a POST request with lead data to the /predict endpoint to get a real-time conversion score.
-
-Here is an example using curl with the live demo URL:
-```
-curl -X POST http://api.ezrahernowo.com/v2/predict \   
--H "Content-Type: application/json" \
--d '{  
-      "TotalVisits": 4,  
-      "Total Time Spent on Website": 1850,  
-      "Page Views Per Visit": 4,
-      "Lead Origin": "API"  
-      "Lead Source": "Google",  
-      "Last Activity": "SMS Sent",  
-      "What is your current occupation": "Unemployed"  
-    }'
-```
-or
-```
-curl -X POST https://api.ezrahernowo.com/v2/predict -H "Content-Type: application/json" -d '{"TotalVisits": 4, "Total Time Spent on Website": 1850, "Page Views Per Visit": 4, "Lead Origin": "API", "Lead Source": "Google", "Last Activity": "SMS Sent", "What is your current occupation": "Unemployed"}'
-```
-**Expected Response:**
-```json
-{
-  "lable": "Will Conver",
-  "lead_score": 88.89,  
-  "prediction": 1
-}
+Build and run the API with Docker:
+```bash
+cd api-lead-scoring
+docker compose up --build -d
+# API available on http://localhost:5000
 ```
 
-## **✨ Try the Live Dashboard App**
-To see the project in action, visit the live web application:
+For the Flask UI, ensure model artifacts are available. The app now searches common locations (`./`, `../models`, `/app/models`) or set `MODEL_DIR` to the folder with the artifacts.
 
-[https://demo.ezrahernowo.com/lead-scoring](https://demo.ezrahernowo.com/lead-scoring)
-
-## **🔮 Future Work & Deployment Roadmap**
-
-* **Advanced Feature Engineering:**  
-  * [ ] Implement advanced feature selection techniques like **Recursive Feature Elimination (RFE)** to identify the most impactful features and potentially simplify the model.  
-* **Model Optimization:**  
-  * [ ] Perform **hyperparameter tuning** using GridSearchCV or RandomizedSearchCV to further optimize model performance.  
-  * [ ] Experiment with more complex models like **Random Forest** or **Gradient Boosting (XGBoost)** to compare results.  
-* **Interactive Dashboard:**  
-  * [ ] Develop a dashboard using **Streamlit** or **Dash** that consumes the API, allowing users to input lead data via a web form and see the results visually.  
-* **CI/CD Pipeline:**  
-  * [ ] Implement a CI/CD pipeline using **GitHub Actions** to automatically test and deploy changes to the application.
+## Notes / Changelog
+- Updated root docs to reflect FastAPI backend + Flask UI (removed old DB instructions)
+- Fixed HTML template issues in the Flask UI (missing </select> tags)
+- Improved Flask model loading (supports MODEL_DIR and common search paths)
+- Upgraded FastAPI models to Pydantic v2 style config, removed warnings
+- API Dockerfile: added `curl` for HEALTHCHECK
+- Added `api-lead-scoring/start.sh` helper script

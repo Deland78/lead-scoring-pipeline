@@ -30,6 +30,29 @@ EXPECTED_COLUMNS = [
 model = None
 preprocessor = None
 
+
+def _find_model_path(filename: str) -> str:
+    """Find model artifact across common locations."""
+    # 1) MODEL_DIR env var
+    model_dir = os.environ.get("MODEL_DIR")
+    candidates = []
+    if model_dir:
+        candidates.append(os.path.join(model_dir, filename))
+
+    # 2) Current directory
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates.append(os.path.join(here, filename))
+
+    # 3) Sibling repo models dir
+    candidates.append(os.path.join(here, "..", "models", filename))
+    # 4) Root /app/models
+    candidates.append(os.path.join("/app", "models", filename))
+
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return filename  # fallback
+
 # --- Load Model and Preprocessor with Error Handling ---
 @lru_cache(maxsize=1)
 def load_model_assets():
@@ -38,8 +61,10 @@ def load_model_assets():
     try:
         if model is None or preprocessor is None:
             logger.info("Loading model and preprocessor...")
-            model = joblib.load('log_reg_model.joblib')
-            preprocessor = joblib.load('preprocessor.joblib')
+            model_path = _find_model_path('log_reg_model.joblib')
+            preproc_path = _find_model_path('preprocessor.joblib')
+            model = joblib.load(model_path)
+            preprocessor = joblib.load(preproc_path)
             logger.info("Model and preprocessor loaded successfully.")
         return model, preprocessor
     except FileNotFoundError as e:
@@ -88,13 +113,11 @@ HTML_TEMPLATE = """
         {% endif %}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             <!-- Input Form Section -->
             <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
                 <h2 class="text-2xl font-semibold mb-6 border-b pb-4">New Lead Entry</h2>
                 <form action="/" method="post">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        
                         <!-- Numerical Inputs -->
                         <div>
                             <label for="TotalVisits" class="block text-sm font-medium text-gray-700">Total Visits</label>
@@ -107,7 +130,7 @@ HTML_TEMPLATE = """
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                         </div>
                         <div class="md:col-span-2">
-                             <label for="Total Time Spent on Website" class="block text-sm font-medium text-gray-700">Time on Website (s)</label>
+                            <label for="Total Time Spent on Website" class="block text-sm font-medium text-gray-700">Time on Website (s)</label>
                             <input type="number" name="Total Time Spent on Website" value="{{ form_data.get('Total Time Spent on Website', '500') }}" 
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                         </div>
@@ -123,7 +146,7 @@ HTML_TEMPLATE = """
                                 <option {% if form_data.get('Lead Origin') == 'Quick Add Form' %}selected{% endif %}>Quick Add Form</option>
                             </select>
                         </div>
-                         <div>
+                        <div>
                             <label for="Lead Source" class="block text-sm font-medium text-gray-700">Lead Source</label>
                             <select name="Lead Source" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                                 <option {% if form_data.get('Lead Source') == 'Google' %}selected{% endif %}>Google</option>
@@ -133,7 +156,7 @@ HTML_TEMPLATE = """
                                 <option {% if form_data.get('Lead Source') == 'Reference' %}selected{% endif %}>Reference</option>
                             </select>
                         </div>
-                         <div class="md:col-span-2">
+                        <div class="md:col-span-2">
                             <label for="Last Activity" class="block text-sm font-medium text-gray-700">Last Activity</label>
                             <select name="Last Activity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                                 <option {% if form_data.get('Last Activity') == 'Email Opened' %}selected{% endif %}>Email Opened</option>
@@ -181,7 +204,7 @@ HTML_TEMPLATE = """
             <!-- Dashboard / Output Section -->
             <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
                 <h2 class="text-2xl font-semibold mb-6 border-b pb-4">Dashboard</h2>
-                
+
                 <!-- Latest Prediction -->
                 <div class="text-center bg-gray-50 p-6 rounded-xl mb-6">
                     <h3 class="text-lg font-medium text-gray-600 mb-2">Latest Prediction</h3>
@@ -226,7 +249,7 @@ HTML_TEMPLATE = """
                     </div>
                     <div>
                         <h3 class="text-lg font-medium text-gray-600 mb-2">Conversion Summary</h3>
-                         <div class="w-full h-64 flex items-center justify-center">
+                        <div class="w-full h-64 flex items-center justify-center">
                             {% if history %}
                             <canvas id="conversionChart"></canvas>
                             {% else %}
@@ -238,13 +261,13 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
-    
+
     {% if history %}
     <script>
         const historyData = {{ history|tojson }};
         const convertedCount = historyData.filter(item => item.prediction == 1).length;
         const notConvertedCount = historyData.length - convertedCount;
-        
+
         if (historyData.length > 0) {
             const ctx = document.getElementById('conversionChart').getContext('2d');
             new Chart(ctx, {
@@ -302,7 +325,7 @@ def safe_predict(input_data):
         numerical_cols = ['TotalVisits', 'Total Time Spent on Website', 'Page Views Per Visit']
         for col in numerical_cols:
             input_df[col] = pd.to_numeric(input_df[col], errors='coerce').fillna(0)
-        
+
         # Preprocess and predict
         processed_input = preprocessor.transform(input_df)
         prediction = model.predict(processed_input)[0]
@@ -322,13 +345,13 @@ def index():
     lead_score_result = None
     error_message = None
     form_data = {}
-    
+
     if request.method == 'POST':
         form_data = request.form.to_dict()
-        
+
         # Make prediction
         prediction_result, lead_score_result, error_message = safe_predict(form_data)
-        
+
         # Store successful predictions
         if prediction_result is not None and error_message is None:
             prediction_history.insert(0, {
@@ -366,9 +389,9 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    
+
     logger.info(f"Starting Flask app on port {port}")
     logger.info(f"Model loaded: {model is not None}")
     logger.info(f"Preprocessor loaded: {preprocessor is not None}")
-    
+
     app.run(host='0.0.0.0', port=port, debug=debug)
