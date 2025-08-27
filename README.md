@@ -9,7 +9,7 @@ No database is required for the demo. Both services use pre-trained model artifa
 ## Components
 - api-lead-scoring (FastAPI)
   - Endpoints: `/` (info), `/v2/health`, `/v2/predict`, `/v2/models/info`, docs at `/v2/docs`
-  - Port: 5000 (default). In local dev we commonly use 5051 to avoid conflicts.
+  - Port: 5001 by default (configurable via API_PORT/PORT). In local dev here we use 5051 to avoid conflicts.
   - Models: `api-lead-scoring/models/model.joblib`, `api-lead-scoring/models/preprocessor.joblib`
 - app-lead-scoring (Flask UI)
   - Routes: `/` (form + dashboard), `/health`
