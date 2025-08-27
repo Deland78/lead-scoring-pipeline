@@ -38,8 +38,43 @@ def load_model_assets():
     try:
         if model is None or preprocessor is None:
             logger.info("Loading model and preprocessor...")
-            model = joblib.load('log_reg_model.joblib')
-            preprocessor = joblib.load('preprocessor.joblib')
+            # Resolve base directories from env or sensible defaults
+            models_dir_env = os.environ.get('MODELS_DIR')
+            base_dirs = []
+            if models_dir_env:
+                base_dirs.append(models_dir_env)
+            base_dirs.extend([
+                'models',
+                os.path.join(os.path.dirname(__file__), 'models'),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models')),
+            ])
+
+            # Prefer models in a dedicated models directory; fallback to legacy filenames
+            model_candidates = []
+            preprocessor_candidates = []
+            for base in base_dirs:
+                model_candidates.extend([
+                    os.path.join(base, 'log_reg_model.joblib'),
+                    os.path.join(base, 'model.joblib'),
+                ])
+                preprocessor_candidates.append(os.path.join(base, 'preprocessor.joblib'))
+            # Also check CWD fallbacks
+            model_candidates.extend(['log_reg_model.joblib', 'model.joblib'])
+            preprocessor_candidates.append('preprocessor.joblib')
+
+            model_path = next((p for p in model_candidates if os.path.exists(p)), None)
+            preprocessor_path = next((p for p in preprocessor_candidates if os.path.exists(p)), None)
+
+            if model_path is None or preprocessor_path is None:
+                missing = []
+                if model_path is None:
+                    missing.append("model(.joblib)")
+                if preprocessor_path is None:
+                    missing.append("preprocessor.joblib")
+                raise FileNotFoundError(f"Missing required artifact(s): {', '.join(missing)}")
+
+            model = joblib.load(model_path)
+            preprocessor = joblib.load(preprocessor_path)
             logger.info("Model and preprocessor loaded successfully.")
         return model, preprocessor
     except FileNotFoundError as e:
