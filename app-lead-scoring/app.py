@@ -141,6 +141,7 @@ HTML_TEMPLATE = """
                                 <option {% if form_data.get('Last Activity') == 'Olark Chat Conversation' %}selected{% endif %}>Olark Chat Conversation</option>
                                 <option {% if form_data.get('Last Activity') == 'Page Visited on Website' %}selected{% endif %}>Page Visited on Website</option>
                                 <option {% if form_data.get('Last Activity') == 'Converted to Lead' %}selected{% endif %}>Converted to Lead</option>
+                            </select>
                         </div>
                         <div class="md:col-span-2">
                             <label for="What is your current occupation" class="block text-sm font-medium text-gray-700">Current Occupation</label>
